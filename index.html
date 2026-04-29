@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Membuat Bangun Ruang - Editor Titik</title>
+    <title>Membuat Bangun Ruang - Final Fix</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -16,12 +16,12 @@
         </div>
         
         <div class="shape-menu">
-            <button onclick="startMode('poly')">Buat Poligon</button>
-            <button onclick="startMode('circle')">Buat Lingkaran</button>
+            <button class="mode-btn" onclick="startMode('poly')">Buat Poligon</button>
+            <button class="mode-btn" onclick="startMode('circle')">Buat Lingkaran</button>
         </div>
         
         <div class="info-box">
-            <p id="hint">Mode: <b>View</b><br>Klik objek untuk edit titik.</p>
+            <p id="hint">Mode: <b>View</b><br>Gunakan jari/mouse untuk menggeser titik merah.</p>
         </div>
 
         <button class="reset-btn" onclick="resetAll()">HAPUS SEMUA</button>
