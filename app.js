@@ -10,110 +10,122 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Cahaya
-scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-const light = new THREE.DirectionalLight(0xffffff, 0.5);
-light.position.set(0, 20, 10);
-scene.add(light);
-
-// Lantai Kotak-kotak (Grid)
-const grid = new THREE.GridHelper(40, 40, 0x444444, 0x222222);
+scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+const grid = new THREE.GridHelper(50, 50, 0x444444, 0x222222);
 scene.add(grid);
-camera.position.set(0, 15, 15);
+camera.position.set(0, 20, 20);
 
 const shapes = [];
+let selectedObject = null;
 let draggingObject = null;
 const planeXZ = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 // --- LOGIKA SPAWN ---
-window.spawnShape = (type) => {
+window.spawn = (type) => {
     let geometry;
-    let color;
-
+    const defaultSize = 4;
+    
     if (type === 'square') {
-        geometry = new THREE.PlaneGeometry(4, 4);
-        color = 0x3498db;
+        geometry = new THREE.PlaneGeometry(defaultSize, defaultSize);
     } else if (type === 'triangle') {
-        const shape = new THREE.Shape();
-        shape.moveTo(0, 2);
-        shape.lineTo(2, -2);
-        shape.lineTo(-2, -2);
-        geometry = new THREE.ShapeGeometry(shape);
-        color = 0xe67e22;
+        const s = new THREE.Shape();
+        s.moveTo(0, defaultSize/2);
+        s.lineTo(defaultSize/2, -defaultSize/2);
+        s.lineTo(-defaultSize/2, -defaultSize/2);
+        geometry = new THREE.ShapeGeometry(s);
     } else if (type === 'circle') {
-        geometry = new THREE.CircleGeometry(2, 32);
-        color = 0x2ecc71;
+        geometry = new THREE.CircleGeometry(defaultSize/2, 32);
     }
 
     const material = new THREE.MeshStandardMaterial({ 
-        color: color, 
-        side: THREE.DoubleSide, 
-        transparent: true, 
-        opacity: 0.8 
+        color: Math.random() * 0xffffff, 
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
     });
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.rotation.x = -Math.PI / 2; // Rebahkan di lantai
-    mesh.position.y = 0.05; // Sedikit di atas grid agar tidak berkedip
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(0, 0.1, 0);
+    mesh.userData = { type, baseSize: defaultSize };
     
     scene.add(mesh);
     shapes.push(mesh);
+    select(mesh);
 };
 
-// --- LOGIKA INTERAKSI (DRAG & SNAP) ---
-function getIntersectionPoint() {
-    raycaster.setFromCamera(mouse, camera);
-    const intersectPoint = new THREE.Vector3();
-    raycaster.ray.intersectPlane(planeXZ, intersectPoint);
-    return intersectPoint;
+// --- INTERAKSI ---
+function select(obj) {
+    if (selectedObject) {
+        selectedObject.material.emissive.setHex(0x000000);
+    }
+    selectedObject = obj;
+    if (obj) {
+        obj.material.emissive.setHex(0x333333); // Highlight terpilih
+        document.getElementById('colorInput').value = "#" + obj.material.color.getHexString();
+    }
 }
+
+window.updateSelectedStyle = () => {
+    if (!selectedObject) return;
+    
+    // Update Warna
+    selectedObject.material.color.set(document.getElementById('colorInput').value);
+    
+    // Update Ukuran
+    const newSize = parseFloat(document.getElementById('sizeInput').value);
+    const scale = newSize / selectedObject.userData.baseSize;
+    selectedObject.scale.set(scale, scale, 1);
+};
+
+window.rotateSelected = () => {
+    if (!selectedObject) return;
+    selectedObject.rotation.z += Math.PI / 4; // Putar 45 derajat
+};
+
+// Handle Keypress R
+window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'r') rotateSelected();
+});
 
 window.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
+    updateMouse(e);
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(shapes);
 
     if (intersects.length > 0) {
+        select(intersects[0].object);
         draggingObject = intersects[0].object;
-        controls.enabled = false; // Matikan kamera saat geser objek
+        controls.enabled = false;
+    } else {
+        select(null);
     }
 });
 
 window.addEventListener('mousemove', (e) => {
     if (!draggingObject) return;
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-    const floorPt = getIntersectionPoint();
+    updateMouse(e);
     
-    // Snapping Sederhana (Kelipatan 0.5 unit)
+    raycaster.setFromCamera(mouse, camera);
+    const intersectPoint = new THREE.Vector3();
+    raycaster.ray.intersectPlane(planeXZ, intersectPoint);
+    
+    // Snapping 0.5 unit
     const snap = 0.5;
-    draggingObject.position.x = Math.round(floorPt.x / snap) * snap;
-    draggingObject.position.z = Math.round(floorPt.z / snap) * snap;
-
-    // Logika Snapping antar Sisi (Jika dekat dengan objek lain, rekatkan)
-    shapes.forEach(other => {
-        if (other === draggingObject) return;
-        const distance = draggingObject.position.distanceTo(other.position);
-        if (distance < 4.2 && distance > 3.8) { // Ukuran standar 4 unit
-             // Otomatis menempel pas di sisi
-             if (Math.abs(draggingObject.position.x - other.position.x) < 1) {
-                 draggingObject.position.x = other.position.x;
-             }
-             if (Math.abs(draggingObject.position.z - other.position.z) < 1) {
-                 draggingObject.position.z = other.position.z;
-             }
-        }
-    });
+    draggingObject.position.x = Math.round(intersectPoint.x / snap) * snap;
+    draggingObject.position.z = Math.round(intersectPoint.z / snap) * snap;
 });
 
 window.addEventListener('mouseup', () => {
     draggingObject = null;
     controls.enabled = true;
 });
+
+function updateMouse(e) {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
 
 function animate() {
     requestAnimationFrame(animate);
