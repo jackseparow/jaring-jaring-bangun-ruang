@@ -1,4 +1,4 @@
-// --- KONFIGURASI DASAR ---
+// --- INITIALIZATION ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -9,41 +9,42 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Pencahayaan
+// Lighting
 scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-const sun = new THREE.DirectionalLight(0xffffff, 0.5);
-sun.position.set(5, 10, 7);
-scene.add(sun);
+const light = new THREE.DirectionalLight(0xffffff, 0.5);
+light.position.set(10, 20, 10);
+scene.add(light);
 
-// Grid Pembantu
-scene.add(new THREE.GridHelper(30, 30, 0x444444, 0x222222));
-camera.position.set(0, 15, 15);
+// Grid
+const grid = new THREE.GridHelper(40, 40, 0x444444, 0x222222);
+scene.add(grid);
+camera.position.set(0, 15, 20);
 
 let mode = 'view';
 let activeHandle = null;
 const handles = [];
 
-// --- UTILS ---
-function getFloorPoint() {
+// Plane bantu untuk raycasting lantai
+const planeXZ = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+// --- FUNCTIONS ---
+function getIntersectionPoint() {
     raycaster.setFromCamera(mouse, camera);
-    const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersectionPoint = new THREE.Vector3();
-    raycaster.ray.intersectPlane(floorPlane, intersectionPoint);
-    return intersectionPoint;
+    const intersectPoint = new THREE.Vector3();
+    raycaster.ray.intersectPlane(planeXZ, intersectPoint);
+    return intersectPoint;
 }
 
 window.startMode = (m) => {
     mode = m;
-    document.getElementById('hint').innerHTML = `Mode: <b>${m.toUpperCase()}</b><br>Klik di lantai untuk membuat objek.`;
+    document.getElementById('hint').innerHTML = `Mode: <b>${m.toUpperCase()}</b><br>Klik lantai untuk menempatkan objek.`;
 };
 
-// --- LOGIKA UTAMA ---
+// --- INTERACTION ---
 window.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-    const floorPt = getFloorPoint();
+    updateMouse(e);
+    const floorPt = getIntersectionPoint();
 
     if (mode === 'poly') {
         createPolygon(floorPt);
@@ -52,24 +53,22 @@ window.addEventListener('mousedown', (e) => {
         createCircle(floorPt);
         mode = 'view';
     } else {
-        // Mode View: Cek apakah klik mengenai Handle (Titik Merah)
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(handles);
         if (intersects.length > 0) {
             activeHandle = intersects[0].object;
-            controls.enabled = false; // Matikan rotasi kamera saat tarik titik
+            controls.enabled = false;
         }
     }
 });
 
 window.addEventListener('mousemove', (e) => {
+    updateMouse(e);
     if (!activeHandle) return;
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     
-    const floorPt = getFloorPoint();
+    const floorPt = getIntersectionPoint();
     activeHandle.position.copy(floorPt);
-    activeHandle.userData.update(); // Jalankan fungsi update objek
+    activeHandle.userData.update(); 
 });
 
 window.addEventListener('mouseup', () => {
@@ -78,77 +77,102 @@ window.addEventListener('mouseup', () => {
     document.getElementById('hint').innerHTML = `Mode: <b>VIEW</b><br>Tarik titik merah untuk ubah bentuk.`;
 });
 
-// --- FUNGSI BANGUN DATAR ---
+function updateMouse(e) {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
+
+// --- SHAPE LOGIC ---
 
 function createPolygon(center) {
-    const pts = [
-        new THREE.Vector3(center.x - 2, 0, center.z - 2),
-        new THREE.Vector3(center.x + 2, 0, center.z - 2),
-        new THREE.Vector3(center.x + 2, 0, center.z + 2),
-        new THREE.Vector3(center.x - 2, 0, center.z + 2)
+    // Definisi titik-titik awal relatif terhadap pusat klik
+    const points = [
+        new THREE.Vector3(center.x - 3, 0, center.z - 3),
+        new THREE.Vector3(center.x + 3, 0, center.z - 3),
+        new THREE.Vector3(center.x + 3, 0, center.z + 3),
+        new THREE.Vector3(center.x - 3, 0, center.z + 3)
     ];
 
-    const mesh = new THREE.Mesh(
-        new THREE.BufferGeometry(),
-        new THREE.MeshStandardMaterial({ color: 0x3498db, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
-    );
+    const material = new THREE.MeshStandardMaterial({ 
+        color: 0x3498db, 
+        side: THREE.DoubleSide, 
+        transparent: true, 
+        opacity: 0.7 
+    });
+
+    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), material);
     scene.add(mesh);
 
-    // Buat Titik Kontrol (Handles)
-    pts.forEach((pt, i) => {
-        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
+    points.forEach((pt, i) => {
+        const handle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.25), 
+            new THREE.MeshBasicMaterial({ color: 0xff4757 })
+        );
         handle.position.copy(pt);
         scene.add(handle);
         handles.push(handle);
 
         handle.userData.update = () => {
-            pts[i].copy(handle.position);
-            updatePolygonGeometry(mesh, pts);
+            points[i].copy(handle.position);
+            refreshPolygon(mesh, points);
         };
     });
 
-    updatePolygonGeometry(mesh, pts);
+    refreshPolygon(mesh, points);
 }
 
-function updatePolygonGeometry(mesh, pts) {
+function refreshPolygon(mesh, points) {
+    // Trick: Gunakan Shape tapi pastikan koordinat diubah ke sistem 2D sementara untuk pembuatan geometri
     const shape = new THREE.Shape();
-    shape.moveTo(pts[0].x, -pts[0].z); // Inversi Z karena ShapeGeometry bekerja di bidang XY
-    for (let i = 1; i < pts.length; i++) {
-        shape.lineTo(pts[i].x, -pts[i].z);
+    shape.moveTo(points[0].x, points[0].z);
+    for (let i = 1; i < points.length; i++) {
+        shape.lineTo(points[i].x, points[i].z);
     }
     shape.closePath();
 
     mesh.geometry.dispose();
     mesh.geometry = new THREE.ShapeGeometry(shape);
-    mesh.rotation.x = -Math.PI / 2; // Rebahkan ke lantai
+    // Kembalikan orientasi agar rata di lantai
+    mesh.rotation.x = Math.PI / 2; 
+    mesh.position.y = 0.02; // Sedikit di atas grid agar tidak z-fighting
 }
 
 function createCircle(center) {
-    let radius = 2;
-    const mesh = new THREE.Mesh(
-        new THREE.CircleGeometry(radius, 32),
-        new THREE.MeshStandardMaterial({ color: 0x2ecc71, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
-    );
-    mesh.position.copy(center);
-    mesh.rotation.x = -Math.PI / 2;
+    let radius = 3;
+    const material = new THREE.MeshStandardMaterial({ 
+        color: 0x2ecc71, 
+        side: THREE.DoubleSide, 
+        transparent: true, 
+        opacity: 0.7 
+    });
+
+    const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 64), material);
+    mesh.rotation.x = Math.PI / 2;
+    mesh.position.set(center.x, 0.01, center.z);
     scene.add(mesh);
 
-    const handle = new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
+    // Handle Jari-jari
+    const handle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.25), 
+        new THREE.MeshBasicMaterial({ color: 0xff4757 })
+    );
     handle.position.set(center.x + radius, 0, center.z);
     scene.add(handle);
     handles.push(handle);
 
     handle.userData.update = () => {
-        const newRadius = handle.position.distanceTo(mesh.position);
+        // Hitung jarak handle ke pusat lingkaran (World Space)
+        const currentPos = new THREE.Vector3(mesh.position.x, 0, mesh.position.z);
+        const dist = handle.position.distanceTo(currentPos);
+        
         mesh.geometry.dispose();
-        mesh.geometry = new THREE.CircleGeometry(newRadius, 32);
-        // Pastikan handle tetap di garis horizontal relatif terhadap pusat untuk kemudahan tarik
-        handle.position.y = 0; 
+        mesh.geometry = new THREE.CircleGeometry(dist, 64);
+        handle.position.y = 0; // Kunci handle agar tidak melayang
     };
 }
 
 window.resetAll = () => {
-    location.reload(); 
+    location.reload();
 };
 
 function animate() {
