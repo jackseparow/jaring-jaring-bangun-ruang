@@ -3,30 +3,30 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Net Builder - Advance Polypad</title>
+    <title>Net Builder Pro - Fix Display</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #121212; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #0a0a0a; }
         #ui-panel {
             position: absolute; top: 20px; left: 20px; width: 240px;
             background: rgba(255, 255, 255, 0.95); padding: 20px;
-            border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100;
+            border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 100;
         }
         .header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        #mascot-img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #3498db; }
+        #mascot-img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #3498db; background: #fff; }
         h2 { margin: 0; font-size: 1rem; color: #1a1a2e; }
         
         .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        button { padding: 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 6px; font-weight: bold; font-size: 0.75em; }
+        button { padding: 10px; cursor: pointer; border: 1px solid #ccc; border-radius: 8px; font-weight: bold; font-size: 0.75em; background: white; }
         button:hover { background: #3498db; color: white; }
 
-        .editor-panel { border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px; }
-        .control-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        label { font-size: 0.8em; color: #555; font-weight: bold; }
+        .editor-panel { border-top: 1px solid #ddd; padding-top: 12px; margin-top: 10px; }
+        .control-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        label { font-size: 0.8em; color: #333; font-weight: bold; }
 
-        .hint { font-size: 0.7em; color: #888; margin-top: 10px; line-height: 1.4; }
-        .reset-btn { width: 100%; background: #e74c3c; color: white; border: none; margin-top: 10px; padding: 10px; border-radius: 8px; }
+        .hint { font-size: 0.75em; color: #666; margin-top: 12px; line-height: 1.5; background: #f0f0f0; padding: 8px; border-radius: 5px; }
+        .reset-btn { width: 100%; background: #e74c3c; color: white; border: none; margin-top: 12px; padding: 10px; border-radius: 8px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -37,28 +37,29 @@
         </div>
         
         <div class="menu">
-            <button onclick="spawn('square')">Persegi</button>
-            <button onclick="spawn('triangle')">Segitiga</button>
-            <button onclick="spawn('circle')">Lingkaran</button>
-            <button onclick="rotateSelected()">Putar (R)</button>
+            <button onclick="spawn('square')">PERSEGI</button>
+            <button onclick="spawn('triangle')">SEGITIGA</button>
+            <button onclick="spawn('circle')">LINGKARAN</button>
+            <button onclick="rotateSelected()" style="background: #f39c12; color: white; border: none;">PUTAR (R)</button>
         </div>
 
-        <div class="editor-panel" id="editor">
+        <div class="editor-panel">
             <div class="control-group">
                 <label>Warna</label>
-                <input type="color" id="colorInput" oninput="updateSelectedStyle()">
+                <input type="color" id="colorInput" value="#3498db" oninput="updateSelected()">
             </div>
             <div class="control-group">
-                <label>Ukuran Sisi</label>
-                <input type="range" id="sizeInput" min="1" max="6" step="0.5" oninput="updateSelectedStyle()">
+                <label>Ukuran</label>
+                <input type="range" id="sizeInput" min="1" max="8" step="0.5" value="4" oninput="updateSelected()">
             </div>
         </div>
 
         <div class="hint">
-            <b>Klik:</b> Pilih | <b>Drag:</b> Pindah<br>
-            <b>Tombol R:</b> Putar 45°
+            <b>Pilih:</b> Klik Objek<br>
+            <b>Pindah:</b> Drag Objek<br>
+            <b>Putar:</b> Tekan R / Tombol
         </div>
-        <button class="reset-btn" onclick="location.reload()">RESET</button>
+        <button class="reset-btn" onclick="location.reload()">HAPUS SEMUA</button>
     </div>
     <script src="app.js"></script>
 </body>
