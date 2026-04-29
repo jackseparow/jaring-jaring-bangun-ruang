@@ -1,15 +1,13 @@
-body { margin: 0; overflow: hidden; font-family: sans-serif; background: #232526; }
+body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #1a1a2e; }
 #ui-panel {
-    position: absolute; top: 20px; left: 20px; width: 200px;
-    background: rgba(255, 255, 255, 0.9); padding: 20px;
-    border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    z-index: 100;
+    position: absolute; top: 20px; left: 20px; width: 220px;
+    background: rgba(255, 255, 255, 0.95); padding: 15px;
+    border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100;
 }
-.shape-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 15px; }
-button { 
-    padding: 8px; cursor: pointer; border: 1px solid #ccc; background: white;
-    transition: 0.3s; font-weight: bold;
-}
-button:hover { background: #eee; }
-#fold-btn { width: 100%; background: #27ae60; color: white; border: none; padding: 12px; }
-#reset-btn { width: 100%; margin-top: 5px; font-size: 0.8em; }
+.control-group { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.shape-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+button { padding: 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; font-size: 0.8em; transition: 0.2s; }
+button:hover { background: #e0e0e0; }
+#fold-btn { width: 100%; background: #27ae60; color: white; font-weight: bold; margin-top: 10px; }
+.reset-btn { width: 100%; background: #e74c3c; color: white; margin-top: 5px; }
+#status { position: absolute; bottom: 20px; left: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px; }
