@@ -1,3 +1,4 @@
+// --- KONFIGURASI DASAR ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -8,50 +9,55 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
+// Pencahayaan
 scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-scene.add(new THREE.GridHelper(20, 20, 0x444444, 0x222222));
-camera.position.set(0, 12, 12);
+const sun = new THREE.DirectionalLight(0xffffff, 0.5);
+sun.position.set(5, 10, 7);
+scene.add(sun);
 
-let mode = 'view'; // view, poly, circle
-let activeShape = null;
+// Grid Pembantu
+scene.add(new THREE.GridHelper(30, 30, 0x444444, 0x222222));
+camera.position.set(0, 15, 15);
+
+let mode = 'view';
 let activeHandle = null;
-const shapes = [];
-const handles = []; // Titik kontrol visual
+const handles = [];
 
 // --- UTILS ---
-function getMouseFloor() {
+function getFloorPoint() {
     raycaster.setFromCamera(mouse, camera);
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const target = new THREE.Vector3();
-    raycaster.ray.intersectPlane(plane, target);
-    return target;
+    const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersectionPoint = new THREE.Vector3();
+    raycaster.ray.intersectPlane(floorPlane, intersectionPoint);
+    return intersectionPoint;
 }
 
 window.startMode = (m) => {
     mode = m;
-    activeShape = null;
-    document.getElementById('hint').innerHTML = `Mode: <b>${m.toUpperCase()}</b><br>Klik lantai untuk memulai.`;
+    document.getElementById('hint').innerHTML = `Mode: <b>${m.toUpperCase()}</b><br>Klik di lantai untuk membuat objek.`;
 };
 
-// --- CORE LOGIC ---
+// --- LOGIKA UTAMA ---
 window.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    
-    const floorPt = getMouseFloor();
+
+    const floorPt = getFloorPoint();
 
     if (mode === 'poly') {
-        createPoly(floorPt);
+        createPolygon(floorPt);
+        mode = 'view';
     } else if (mode === 'circle') {
         createCircle(floorPt);
+        mode = 'view';
     } else {
-        // Cek Klik Handle untuk Edit
+        // Mode View: Cek apakah klik mengenai Handle (Titik Merah)
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(handles);
         if (intersects.length > 0) {
             activeHandle = intersects[0].object;
-            controls.enabled = false;
+            controls.enabled = false; // Matikan rotasi kamera saat tarik titik
         }
     }
 });
@@ -61,88 +67,99 @@ window.addEventListener('mousemove', (e) => {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     
-    const floorPt = getMouseFloor();
+    const floorPt = getFloorPoint();
     activeHandle.position.copy(floorPt);
-    activeHandle.userData.updateAction();
+    activeHandle.userData.update(); // Jalankan fungsi update objek
 });
 
 window.addEventListener('mouseup', () => {
     activeHandle = null;
     controls.enabled = true;
+    document.getElementById('hint').innerHTML = `Mode: <b>VIEW</b><br>Tarik titik merah untuk ubah bentuk.`;
 });
 
-// --- PEMBUATAN BANGUN ---
-function createPoly(center) {
+// --- FUNGSI BANGUN DATAR ---
+
+function createPolygon(center) {
     const pts = [
-        new THREE.Vector3(center.x - 1, 0, center.z - 1),
-        new THREE.Vector3(center.x + 1, 0, center.z - 1),
-        new THREE.Vector3(center.x + 1, 0, center.z + 1),
-        new THREE.Vector3(center.x - 1, 0, center.z + 1)
+        new THREE.Vector3(center.x - 2, 0, center.z - 2),
+        new THREE.Vector3(center.x + 2, 0, center.z - 2),
+        new THREE.Vector3(center.x + 2, 0, center.z + 2),
+        new THREE.Vector3(center.x - 2, 0, center.z + 2)
     ];
 
-    const shape = new THREE.Shape();
-    const geo = new THREE.ShapeGeometry(shape);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x3498db, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
-    mesh.rotation.x = -Math.PI/2; // Dibaringkan agar sesuai ShapeGeometry 2D
+    const mesh = new THREE.Mesh(
+        new THREE.BufferGeometry(),
+        new THREE.MeshStandardMaterial({ color: 0x3498db, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+    );
     scene.add(mesh);
 
-    // Buat Handles
+    // Buat Titik Kontrol (Handles)
     pts.forEach((pt, i) => {
-        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
+        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
         handle.position.copy(pt);
         scene.add(handle);
         handles.push(handle);
 
-        handle.userData.updateAction = () => {
+        handle.userData.update = () => {
             pts[i].copy(handle.position);
-            updatePolyMesh(mesh, pts);
+            updatePolygonGeometry(mesh, pts);
         };
     });
 
-    updatePolyMesh(mesh, pts);
-    mode = 'view';
+    updatePolygonGeometry(mesh, pts);
 }
 
-function updatePolyMesh(mesh, pts) {
+function updatePolygonGeometry(mesh, pts) {
     const shape = new THREE.Shape();
-    // Konversi posisi dunia ke lokal mesh yang sudah diputar
-    shape.moveTo(pts[0].x, -pts[0].z);
-    for(let i=1; i<pts.length; i++) shape.lineTo(pts[i].x, -pts[i].z);
-    
+    shape.moveTo(pts[0].x, -pts[0].z); // Inversi Z karena ShapeGeometry bekerja di bidang XY
+    for (let i = 1; i < pts.length; i++) {
+        shape.lineTo(pts[i].x, -pts[i].z);
+    }
+    shape.closePath();
+
     mesh.geometry.dispose();
     mesh.geometry = new THREE.ShapeGeometry(shape);
+    mesh.rotation.x = -Math.PI / 2; // Rebahkan ke lantai
 }
 
 function createCircle(center) {
-    const centerPoint = center.clone();
     let radius = 2;
-
-    const geo = new THREE.CircleGeometry(radius, 32);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x2ecc71, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
-    mesh.rotation.x = -Math.PI/2;
-    mesh.position.copy(centerPoint);
+    const mesh = new THREE.Mesh(
+        new THREE.CircleGeometry(radius, 32),
+        new THREE.MeshStandardMaterial({ color: 0x2ecc71, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+    );
+    mesh.position.copy(center);
+    mesh.rotation.x = -Math.PI / 2;
     scene.add(mesh);
 
-    // Handle Jari-jari
-    const handle = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
-    handle.position.set(centerPoint.x + radius, 0, centerPoint.z);
+    const handle = new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
+    handle.position.set(center.x + radius, 0, center.z);
     scene.add(handle);
     handles.push(handle);
 
-    handle.userData.updateAction = () => {
-        const d = handle.position.distanceTo(centerPoint);
-        mesh.scale.set(d/radius, d/radius, 1);
+    handle.userData.update = () => {
+        const newRadius = handle.position.distanceTo(mesh.position);
+        mesh.geometry.dispose();
+        mesh.geometry = new THREE.CircleGeometry(newRadius, 32);
+        // Pastikan handle tetap di garis horizontal relatif terhadap pusat untuk kemudahan tarik
+        handle.position.y = 0; 
     };
-
-    mode = 'view';
 }
 
 window.resetAll = () => {
-    location.reload(); // Cara paling bersih untuk reset total sistem partikel/mesh
+    location.reload(); 
 };
 
 function animate() {
     requestAnimationFrame(animate);
+    controls.update();
     renderer.render(scene, camera);
 }
 animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
