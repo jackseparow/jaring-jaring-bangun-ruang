@@ -3,24 +3,27 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Membuat Bangun Ruang - Precision Fix</title>
+    <title>Membuat Bangun Ruang - Polypad Style</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #050505; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #121212; }
         #ui-panel {
-            position: absolute; top: 20px; left: 20px; width: 230px;
-            background: rgba(255, 255, 255, 0.95); padding: 20px;
-            border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 100;
+            position: absolute; top: 20px; left: 20px; width: 220px;
+            background: rgba(255, 255, 255, 0.95); padding: 15px;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100;
         }
-        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
-        #mascot-img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #3498db; background: white; }
-        h2 { margin: 0; font-size: 1.1em; color: #1a1a2e; line-height: 1.2; }
-        .shape-menu { display: grid; gap: 10px; margin-bottom: 15px; }
-        button { padding: 12px; cursor: pointer; border: 1px solid #ccc; border-radius: 8px; font-weight: bold; background: white; transition: 0.2s; }
-        button:hover { background: #3498db; color: white; border-color: #3498db; }
-        .info-box { font-size: 0.85em; color: #444; border-top: 1px solid #ddd; padding-top: 10px; }
-        .reset-btn { width: 100%; background: #e74c3c; color: white; border: none; margin-top: 15px; padding: 10px; border-radius: 8px; cursor: pointer; }
+        .header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        #mascot-img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #3498db; }
+        h2 { margin: 0; font-size: 1rem; color: #1a1a2e; }
+        .menu { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        button { 
+            padding: 10px; cursor: pointer; border: 1px solid #ccc; 
+            border-radius: 8px; font-weight: bold; background: white; 
+        }
+        button:hover { background: #3498db; color: white; }
+        .info { margin-top: 15px; font-size: 0.75em; color: #666; text-align: center; }
+        .reset-btn { width: 100%; background: #e74c3c; color: white; border: none; margin-top: 10px; padding: 8px; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -29,14 +32,13 @@
             <img src="siyo.png" id="mascot-img" alt="Si Yo" onerror="this.src='https://via.placeholder.com/50?text=Si+Yo'">
             <h2>Membuat Bangun Ruang</h2>
         </div>
-        <div class="shape-menu">
-            <button onclick="startMode('poly')">Buat Poligon</button>
-            <button onclick="startMode('circle')">Buat Lingkaran</button>
+        <div class="menu">
+            <button onclick="spawnShape('square')">Tambah Persegi</button>
+            <button onclick="spawnShape('triangle')">Tambah Segitiga</button>
+            <button onclick="spawnShape('circle')">Tambah Lingkaran</button>
         </div>
-        <div class="info-box">
-            <p id="hint">Mode: <b>VIEW</b><br>Tarik titik merah untuk mengubah bentuk.</p>
-        </div>
-        <button class="reset-btn" onclick="resetAll()">HAPUS SEMUA</button>
+        <div class="info">Drag objek untuk menyusun jaring-jaring.</div>
+        <button class="reset-btn" onclick="location.reload()">RESET CANVAS</button>
     </div>
     <script src="app.js"></script>
 </body>
