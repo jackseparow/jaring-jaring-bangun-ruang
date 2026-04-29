@@ -3,10 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Membuat Bangun Ruang - Si Yo Edition</title>
+    <title>Membuat Bangun Ruang - Editor Titik</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,30 +15,16 @@
             <h2>Membuat Bangun Ruang</h2>
         </div>
         
-        <div class="control-group">
-            <label>Warna</label>
-            <input type="color" id="colorPicker" value="#3498db">
-        </div>
-
         <div class="shape-menu">
-            <button onclick="addBasicShape('circle')">Lingkaran</button>
-            <button onclick="addBasicShape('ellipse')">Ellips</button>
-            <button onclick="addBasicShape('poly', 3)">Segitiga</button>
-            <button onclick="addBasicShape('poly', 4)">Persegi</button>
-            <button onclick="startDrawMode('poly')">Sisi Lurus</button>
-            <button onclick="startDrawMode('curve')">Sisi Lengkung</button>
+            <button onclick="startMode('poly')">Buat Poligon</button>
+            <button onclick="startMode('circle')">Buat Lingkaran</button>
         </div>
         
-        <hr>
-        <div class="transform-modes">
-            <button onclick="setTransformMode('translate')">Pindah</button>
-            <button onclick="setTransformMode('rotate')">Putar</button>
-            <button onclick="setTransformMode('scale')">Ukuran</button>
+        <div class="info-box">
+            <p id="hint">Mode: <b>View</b><br>Klik objek untuk edit titik.</p>
         </div>
 
-        <button id="fold-btn" onclick="toggleFold()">LIPAT (3D)</button>
         <button class="reset-btn" onclick="resetAll()">HAPUS SEMUA</button>
-        <p class="status-text" id="status">Mode: View</p>
     </div>
 
     <script src="app.js"></script>
