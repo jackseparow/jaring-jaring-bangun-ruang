@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <title>3D Net Builder - Taman Numerasi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="ui-panel">
+        <h2>Net Builder</h2>
+        <p>Pilih bangun datar & tempelkan sisinya:</p>
+        <div class="shape-menu">
+            <button onclick="addShape(3)">Segitiga</button>
+            <button onclick="addShape(4)">Persegi</button>
+            <button onclick="addShape(5)">Pentagon</button>
+            <button onclick="addShape(6)">Heksagon</button>
+        </div>
+        <hr>
+        <button id="fold-btn" onclick="toggleFold()">LIPAT JADI 3D</button>
+        <button id="reset-btn" onclick="resetCanvas()">RESET</button>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
