@@ -4,127 +4,141 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const orbit = new THREE.OrbitControls(camera, renderer.domElement);
-const transform = new THREE.TransformControls(camera, renderer.domElement);
-scene.add(transform);
-
-// Logika agar Orbit & Transform tidak bentrok
-transform.addEventListener('dragging-changed', (e) => orbit.enabled = !e.value);
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-scene.add(new THREE.GridHelper(30, 30, 0x444444, 0x222222));
-camera.position.set(0, 15, 15);
-
-let shapes = [];
-let mode = 'view'; 
-let drawPoints = [];
-let drawMarkers = [];
-let drawLine = null;
-
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// --- FUNGSI BANGUN DASAR ---
-window.addBasicShape = function(type, sides) {
-    const color = document.getElementById('colorPicker').value;
-    let shape = new THREE.Shape();
-    
-    if(type === 'circle') {
-        shape.absarc(0, 0, 2, 0, Math.PI * 2, false);
-    } else if(type === 'ellipse') {
-        shape.absellipse(0, 0, 3, 1.5, 0, Math.PI * 2, false);
-    } else {
-        const radius = 2;
-        for (let i = 0; i <= sides; i++) {
-            const angle = (i / sides) * Math.PI * 2;
-            if (i === 0) shape.moveTo(Math.cos(angle)*radius, Math.sin(angle)*radius);
-            else shape.lineTo(Math.cos(angle)*radius, Math.sin(angle)*radius);
-        }
-    }
-    createMesh(shape, color);
-};
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+scene.add(new THREE.GridHelper(20, 20, 0x444444, 0x222222));
+camera.position.set(0, 12, 12);
 
-function createMesh(shape, color) {
-    const geo = new THREE.ShapeGeometry(shape);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.y = 0.1;
-    scene.add(mesh);
-    shapes.push(mesh);
-    transform.attach(mesh); // Langsung pilih yang baru dibuat
+let mode = 'view'; // view, poly, circle
+let activeShape = null;
+let activeHandle = null;
+const shapes = [];
+const handles = []; // Titik kontrol visual
+
+// --- UTILS ---
+function getMouseFloor() {
+    raycaster.setFromCamera(mouse, camera);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const target = new THREE.Vector3();
+    raycaster.ray.intersectPlane(plane, target);
+    return target;
 }
 
-// --- MANIPULASI ---
-window.setTransformMode = function(m) {
-    transform.setMode(m);
-    mode = 'view';
-    document.getElementById('status').innerText = "Mode: " + m.toUpperCase();
+window.startMode = (m) => {
+    mode = m;
+    activeShape = null;
+    document.getElementById('hint').innerHTML = `Mode: <b>${m.toUpperCase()}</b><br>Klik lantai untuk memulai.`;
 };
 
-window.startDrawMode = function(type) {
-    mode = type;
-    drawPoints = [];
-    transform.detach();
-    document.getElementById('status').innerText = "Mode: Menggambar " + type;
-};
-
-// --- LOGIKA KLIK & DRAW ---
+// --- CORE LOGIC ---
 window.addEventListener('mousedown', (e) => {
-    if (e.button !== 0 || mode === 'view') {
-        // Seleksi objek di mode view
-        if(mode === 'view') {
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(shapes);
-            if(intersects.length > 0) transform.attach(intersects[0].object);
-        }
-        return;
-    }
-
-    // Ambil titik lantai
+    if (e.button !== 0) return;
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const t = -camera.position.y / raycaster.ray.direction.y;
-    const pt = camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(t));
     
-    drawPoints.push(pt);
-    const marker = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({color: 0xff0000}));
-    marker.position.copy(pt);
-    scene.add(marker);
-    drawMarkers.push(marker);
+    const floorPt = getMouseFloor();
 
-    if(drawPoints.length > 1) {
-        if(drawLine) scene.remove(drawLine);
-        const lineGeo = new THREE.BufferGeometry().setFromPoints(drawPoints);
-        drawLine = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({color: 0xff0000}));
-        scene.add(drawLine);
+    if (mode === 'poly') {
+        createPoly(floorPt);
+    } else if (mode === 'circle') {
+        createCircle(floorPt);
+    } else {
+        // Cek Klik Handle untuk Edit
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(handles);
+        if (intersects.length > 0) {
+            activeHandle = intersects[0].object;
+            controls.enabled = false;
+        }
     }
 });
 
-window.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter' && drawPoints.length > 2) {
-        const shape = new THREE.Shape();
-        const color = document.getElementById('colorPicker').value;
-        const pts2d = drawPoints.map(p => new THREE.Vector2(p.x, -p.z));
-        
-        shape.moveTo(pts2d[0].x, pts2d[0].y);
-        if(mode === 'curve') shape.splineThru(pts2d);
-        else pts2d.forEach(p => shape.lineTo(p.x, p.y));
-
-        createMesh(shape, color);
-        drawMarkers.forEach(m => scene.remove(m));
-        if(drawLine) scene.remove(drawLine);
-        drawPoints = []; drawMarkers = []; drawLine = null;
-        mode = 'view';
-        document.getElementById('status').innerText = "Mode: View";
-    }
+window.addEventListener('mousemove', (e) => {
+    if (!activeHandle) return;
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    
+    const floorPt = getMouseFloor();
+    activeHandle.position.copy(floorPt);
+    activeHandle.userData.updateAction();
 });
 
-window.resetAll = function() {
-    shapes.forEach(s => scene.remove(s));
-    shapes = []; transform.detach();
+window.addEventListener('mouseup', () => {
+    activeHandle = null;
+    controls.enabled = true;
+});
+
+// --- PEMBUATAN BANGUN ---
+function createPoly(center) {
+    const pts = [
+        new THREE.Vector3(center.x - 1, 0, center.z - 1),
+        new THREE.Vector3(center.x + 1, 0, center.z - 1),
+        new THREE.Vector3(center.x + 1, 0, center.z + 1),
+        new THREE.Vector3(center.x - 1, 0, center.z + 1)
+    ];
+
+    const shape = new THREE.Shape();
+    const geo = new THREE.ShapeGeometry(shape);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x3498db, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
+    mesh.rotation.x = -Math.PI/2; // Dibaringkan agar sesuai ShapeGeometry 2D
+    scene.add(mesh);
+
+    // Buat Handles
+    pts.forEach((pt, i) => {
+        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
+        handle.position.copy(pt);
+        scene.add(handle);
+        handles.push(handle);
+
+        handle.userData.updateAction = () => {
+            pts[i].copy(handle.position);
+            updatePolyMesh(mesh, pts);
+        };
+    });
+
+    updatePolyMesh(mesh, pts);
+    mode = 'view';
+}
+
+function updatePolyMesh(mesh, pts) {
+    const shape = new THREE.Shape();
+    // Konversi posisi dunia ke lokal mesh yang sudah diputar
+    shape.moveTo(pts[0].x, -pts[0].z);
+    for(let i=1; i<pts.length; i++) shape.lineTo(pts[i].x, -pts[i].z);
+    
+    mesh.geometry.dispose();
+    mesh.geometry = new THREE.ShapeGeometry(shape);
+}
+
+function createCircle(center) {
+    const centerPoint = center.clone();
+    let radius = 2;
+
+    const geo = new THREE.CircleGeometry(radius, 32);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x2ecc71, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
+    mesh.rotation.x = -Math.PI/2;
+    mesh.position.copy(centerPoint);
+    scene.add(mesh);
+
+    // Handle Jari-jari
+    const handle = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
+    handle.position.set(centerPoint.x + radius, 0, centerPoint.z);
+    scene.add(handle);
+    handles.push(handle);
+
+    handle.userData.updateAction = () => {
+        const d = handle.position.distanceTo(centerPoint);
+        mesh.scale.set(d/radius, d/radius, 1);
+    };
+
+    mode = 'view';
+}
+
+window.resetAll = () => {
+    location.reload(); // Cara paling bersih untuk reset total sistem partikel/mesh
 };
 
 function animate() {
