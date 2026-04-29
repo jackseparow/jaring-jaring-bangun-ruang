@@ -9,13 +9,11 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Lighting
 scene.add(new THREE.AmbientLight(0xffffff, 0.8));
 const light = new THREE.DirectionalLight(0xffffff, 0.5);
 light.position.set(10, 20, 10);
 scene.add(light);
 
-// Grid
 const grid = new THREE.GridHelper(40, 40, 0x444444, 0x222222);
 scene.add(grid);
 camera.position.set(0, 15, 20);
@@ -24,10 +22,10 @@ let mode = 'view';
 let activeHandle = null;
 const handles = [];
 
-// Plane bantu untuk raycasting lantai
+// Plane bantu untuk raycasting lantai tetap di Y = 0
 const planeXZ = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
-// --- FUNCTIONS ---
+// --- UTILS ---
 function getIntersectionPoint() {
     raycaster.setFromCamera(mouse, camera);
     const intersectPoint = new THREE.Vector3();
@@ -74,7 +72,6 @@ window.addEventListener('mousemove', (e) => {
 window.addEventListener('mouseup', () => {
     activeHandle = null;
     controls.enabled = true;
-    document.getElementById('hint').innerHTML = `Mode: <b>VIEW</b><br>Tarik titik merah untuk ubah bentuk.`;
 });
 
 function updateMouse(e) {
@@ -85,12 +82,12 @@ function updateMouse(e) {
 // --- SHAPE LOGIC ---
 
 function createPolygon(center) {
-    // Definisi titik-titik awal relatif terhadap pusat klik
+    // Definisi titik sudut di bidang XZ
     const points = [
-        new THREE.Vector3(center.x - 3, 0, center.z - 3),
-        new THREE.Vector3(center.x + 3, 0, center.z - 3),
-        new THREE.Vector3(center.x + 3, 0, center.z + 3),
-        new THREE.Vector3(center.x - 3, 0, center.z + 3)
+        new THREE.Vector3(center.x - 3, 0.05, center.z - 3),
+        new THREE.Vector3(center.x + 3, 0.05, center.z - 3),
+        new THREE.Vector3(center.x + 3, 0.05, center.z + 3),
+        new THREE.Vector3(center.x - 3, 0.05, center.z + 3)
     ];
 
     const material = new THREE.MeshStandardMaterial({ 
@@ -113,7 +110,7 @@ function createPolygon(center) {
         handles.push(handle);
 
         handle.userData.update = () => {
-            points[i].copy(handle.position);
+            pt.copy(handle.position);
             refreshPolygon(mesh, points);
         };
     });
@@ -122,19 +119,20 @@ function createPolygon(center) {
 }
 
 function refreshPolygon(mesh, points) {
-    // Trick: Gunakan Shape tapi pastikan koordinat diubah ke sistem 2D sementara untuk pembuatan geometri
-    const shape = new THREE.Shape();
-    shape.moveTo(points[0].x, points[0].z);
-    for (let i = 1; i < points.length; i++) {
-        shape.lineTo(points[i].x, points[i].z);
-    }
-    shape.closePath();
+    // Membuat segitiga-segitiga untuk mengisi poligon persegi (Triangulasi manual sederhana)
+    // Urutan vertex: 0-1-2 dan 0-2-3
+    const vertices = new Float32Array([
+        points[0].x, points[0].y, points[0].z,
+        points[1].x, points[1].y, points[1].z,
+        points[2].x, points[2].y, points[2].z,
 
-    mesh.geometry.dispose();
-    mesh.geometry = new THREE.ShapeGeometry(shape);
-    // Kembalikan orientasi agar rata di lantai
-    mesh.rotation.x = Math.PI / 2; 
-    mesh.position.y = 0.02; // Sedikit di atas grid agar tidak z-fighting
+        points[0].x, points[0].y, points[0].z,
+        points[2].x, points[2].y, points[2].z,
+        points[3].x, points[3].y, points[3].z,
+    ]);
+
+    mesh.geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    mesh.geometry.computeVertexNormals();
 }
 
 function createCircle(center) {
@@ -147,33 +145,27 @@ function createCircle(center) {
     });
 
     const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 64), material);
-    mesh.rotation.x = Math.PI / 2;
-    mesh.position.set(center.x, 0.01, center.z);
+    mesh.rotation.x = -Math.PI / 2; // Rebahkan rata lantai
+    mesh.position.set(center.x, 0.02, center.z);
     scene.add(mesh);
 
-    // Handle Jari-jari
     const handle = new THREE.Mesh(
         new THREE.SphereGeometry(0.25), 
         new THREE.MeshBasicMaterial({ color: 0xff4757 })
     );
-    handle.position.set(center.x + radius, 0, center.z);
+    handle.position.set(center.x + radius, 0.02, center.z);
     scene.add(handle);
     handles.push(handle);
 
     handle.userData.update = () => {
-        // Hitung jarak handle ke pusat lingkaran (World Space)
-        const currentPos = new THREE.Vector3(mesh.position.x, 0, mesh.position.z);
-        const dist = handle.position.distanceTo(currentPos);
-        
+        const dist = handle.position.distanceTo(mesh.position);
         mesh.geometry.dispose();
         mesh.geometry = new THREE.CircleGeometry(dist, 64);
-        handle.position.y = 0; // Kunci handle agar tidak melayang
+        handle.position.y = 0.02; 
     };
 }
 
-window.resetAll = () => {
-    location.reload();
-};
+window.resetAll = () => { location.reload(); };
 
 function animate() {
     requestAnimationFrame(animate);
