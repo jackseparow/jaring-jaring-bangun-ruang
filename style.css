@@ -1,17 +1,15 @@
-body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #12122b; }
+body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #0f0c29; }
 #ui-panel {
-    position: absolute; top: 20px; left: 20px; width: 250px;
+    position: absolute; top: 20px; left: 20px; width: 260px;
     background: rgba(255, 255, 255, 0.95); padding: 20px;
     border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 100;
 }
 .header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-#mascot-img { width: 55px; height: 55px; border-radius: 50%; border: 3px solid #3498db; background: #fff; }
-h2 { margin: 0; font-size: 1.3em; color: #1a1a2e; }
-.status-text { background: #2c3e50; color: #ecf0f1; padding: 6px 12px; border-radius: 6px; font-size: 0.8em; margin-bottom: 10px; text-align: center;}
-.control-group { margin: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-.shape-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-button { padding: 10px; cursor: pointer; border: 1px solid #ccc; border-radius: 8px; font-size: 0.8em; font-weight: bold; transition: 0.2s; }
-button:hover { background: #dfe6e9; }
-#fold-btn { width: 100%; background: #27ae60; color: white; border: none; margin-top: 15px; }
-.reset-btn { width: 100%; background: #e74c3c; color: white; border: none; margin-top: 8px; }
-.hint { font-size: 10px; color: #636e72; margin-top: 12px; text-align: center; }
+#mascot-img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #3498db; }
+h2 { margin: 0; font-size: 1.1em; color: #1a1a2e; }
+.shape-menu, .transform-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+button { padding: 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 6px; font-size: 0.75em; font-weight: bold; }
+button:hover { background: #eee; }
+.status-text { background: #2c3e50; color: #fff; padding: 5px; border-radius: 4px; font-size: 0.7em; text-align: center; margin-top: 10px; }
+#fold-btn { width: 100%; background: #27ae60; color: white; border: none; padding: 10px; margin-top: 10px; }
+.reset-btn { width: 100%; background: #e74c3c; color: white; border: none; padding: 10px; margin-top: 5px; }
