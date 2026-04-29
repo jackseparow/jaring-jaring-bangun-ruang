@@ -1,0 +1,15 @@
+body { margin: 0; overflow: hidden; font-family: sans-serif; background: #232526; }
+#ui-panel {
+    position: absolute; top: 20px; left: 20px; width: 200px;
+    background: rgba(255, 255, 255, 0.9); padding: 20px;
+    border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 100;
+}
+.shape-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 15px; }
+button { 
+    padding: 8px; cursor: pointer; border: 1px solid #ccc; background: white;
+    transition: 0.3s; font-weight: bold;
+}
+button:hover { background: #eee; }
+#fold-btn { width: 100%; background: #27ae60; color: white; border: none; padding: 12px; }
+#reset-btn { width: 100%; margin-top: 5px; font-size: 0.8em; }
